@@ -4,7 +4,8 @@ import json
 from dotenv import load_dotenv
 from src.utils.logger import logger
 
-load_dotenv(".env.local")
+# Environment variables should be managed at the application level or via host/docker
+# load_dotenv() is called in the main entry point if needed
 
 PINATA_JWT = os.getenv("PINATA_JWT")
 PINATA_API_URL = "https://api.pinata.cloud/pinning/pinJSONToIPFS"

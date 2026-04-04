@@ -1,104 +1,90 @@
-# AegisAuth 🛡️
+# AegisAuth: Adaptive Threat Intelligence & ML Security
 
-AegisAuth is a production-grade **Adaptive Authentication & Risk Assessment Pipeline**. It provides developers with the tools to implement context-aware security, device fingerprinting, and real-time threat detection into any web application.
+![AegisAuth Banner](https://img.shields.io/badge/Security-Adaptive_Auth-blueviolet?style=for-the-badge&logo=shield)
+![Platform-Ready](https://img.shields.io/badge/Platform-Docker_Optimized-blue?style=for-the-badge&logo=docker)
+
+**AegisAuth** is a next-generation adaptive authentication platform that leverages machine learning to detect and neutralize security threats in real-time. By analyzing behavioral telemetry and session metadata, AegisAuth provides dynamic enforcement policies that protect applications without compromising user experience.
 
 ---
 
-# 🧠 SYSTEM ARCHITECTURE OVERVIEW
+## 🏗️ System Architecture
 
-AegisAuth is composed of four independent systems that work together to form a unified security product.
+AegisAuth is built on a distributed, microservices-oriented architecture designed for scalability and low-latency decision making.
 
-```text
-                 ┌────────────────────┐
-                 │    Aegis Platform   │
-                 │     (frontend)      │
-                 └──────────┬──────────┘
-                            │ Issues API Key
-                            ▼
-┌────────────┐      ┌────────────────────┐      ┌────────────────────┐
-│ Demo App   │─────▶│ SDK (Client Layer) │─────▶│ ML Backend         │
-│ (SaaS App) │      │ (Integration Layer)│      │ (Risk Engine API)  │
-└────────────┘      └────────────────────┘      └────────────────────┘
+```mermaid
+graph TD
+    User((User)) -->|Auth Request| DemoApp[Example Demo App]
+    DemoApp -->|Metadata + Payload| SDK[AegisAuth SDK]
+    SDK -->|Encrypted Transmission| MLBackend[ML Risk Engine]
+    
+    subgraph "AegisAuth Ecosystem"
+        MLBackend -->|Predict Anomaly| Inference[Scikit-Learn Model]
+        MLBackend -->|Secure Metadata| Pinata[Pinata IPFS]
+        MLBackend -->|Log Session| Convex[Convex Backend]
+        
+        Dashboard[Platform Dashboard] -->|Manage Policies| Convex
+        Dashboard -->|Telemetry Analytics| Convex
+        Dashboard -->|Immutable Audit| Pinata
+    end
+    
+    Inference -->|Risk Score| MLBackend
+    MLBackend -->|Decision: ALLOW/BLOCK| SDK
+    SDK -->|Enforce Enforcement| DemoApp
 ```
 
 ---
 
-## 🏗️ The Four Pillars
+## 🚀 Key Pillars
 
-### 1. 🔹 aegis-demo-app (The Consumer)
-Your live demo SaaS application used to showcase the product.
-- **Does**: Uses SDK, sends login/session signals, displays risk scores, simulates attacks.
-- **Does NOT**: Calculate risk, train models, or store ML logic.
+### 1. ML-Driven Risk Assessment
+The **ML Risk Engine** (FastAPI) utilizes a trained Scikit-Learn model to evaluate over 15+ behavioral signals, including:
+- **Impossible Travel**: Detecting geo-velocity anomalies.
+- **Pattern-Based Brute Force**: Identifying automated credential stuffing.
+- **Device Fingerprinting**: Recognizing unauthorized device identity shifts.
 
-### 2. 🔹 sdk (The Integration)
-The bridge between your application and the Aegis platform.
-- **Does**: Collects device fingerprints, formats payloads, attaches API keys, calls backend `/predict/risk`, supports continuous monitoring.
-- **Role**: Pure integration and abstraction layer.
+### 2. Decentralized Secure Storage (IPFS)
+To ensure maximum privacy and data immutability, sensitive user metadata is **AES-256 encrypted** and pinned to **IPFS via Pinata**. AegisAuth never stores raw sensitive telemetry in its primary database.
 
-### 3. 🔹 ml-backend (The Intelligence)
-The risk engine microservice powered by machine learning.
-- **Does**: Loads 5 ML models, runs inference, aggregates risk components, returns structured `RiskResponse`.
-- **Role**: The stateless "brain" of the system.
+### 3. Adaptive Enforcement SDK
+The `@devanshthaware/aegis-auth` SDK provides a plug-and-play integration for any frontend. It handles real-time challenges (MFA), automatic session termination, and risk-based step-up authentication.
 
-### 4. 🔹 frontend (The Platform)
-The AegisAuth admin console for security teams.
-- **Does**: API key management, project oversight, threat analytics, session monitoring.
-- **Does NOT**: Perform ML inference (it queries the backend/DB for results).
+### 4. Interactive Simulation Center
+A dedicated environment to test security policies by "firing" simulated attack vectors (Brute Force, Malicious IPs) and watching the platform respond in real-time.
 
 ---
 
-## 🔁 Complete Runtime Flow
+## 🛠️ Tech Stack
 
-### 🟢 Normal Login Flow
-`Demo App` → `SDK` → `ML Backend (/predict/risk)` → `Return RiskResponse` → `Demo App UI Updates` → `Platform Dashboard Logs Updated`
-
-### 🔴 Attack Flow (Mid-session)
-`Attack Simulator` → `SDK checkRisk()` → `ML Backend` → `Risk Increase` → `RiskAggregator (CRITICAL)` → `Demo App Locks Session` → `Platform Logs Updated`
-
----
-
-## 📡 Communication & Responsibility
-
-### System Interaction
-| System | Talks To | Protocol |
-| :--- | :--- | :--- |
-| **Demo App** | SDK | Direct Import |
-| **SDK** | ML Backend | HTTP REST |
-| **ML Backend** | Database | Internal |
-| **Platform** | ML Backend | REST |
-| **Platform** | Database | Direct |
-
-### Separation of Concerns
-| System | Responsibility |
-| :--- | :--- |
-| **Demo App** | UX + Simulation |
-| **SDK** | Integration Abstraction |
-| **ML Backend** | Intelligence (Inference) |
-| **Platform** | Management + Analytics |
+- **Frontend**: Next.js 16, TailwindCSS, Lucide Icons, Shadcn UI.
+- **Backend (API)**: FastAPI, Uvicorn, Pydantic.
+- **Database / Sync**: Convex (Managed Backend).
+- **Decentralized Storage**: Pinata (IPFS).
+- **ML / Data**: Scikit-Learn, Pandas, NumPy.
+- **Infrastructure**: Docker & Docker Compose.
 
 ---
 
-## 📂 Project Structure
+## 📦 Getting Started
 
-```text
-sbjit-project/
-├── frontend/             # AegisAuth Platform Dashboard
-├── ml-backend/           # FastAPI Risk Assessment Engine
-├── sdk/                  # AegisAuth TypeScript SDK
-├── aegis-demo-app/       # Reference SaaS Implementation
-└── CURSOR.md             # AI Context & Master Prompt
+### Prerequisites
+- Docker & Docker Compose installed.
+- `.env.local` files configured for each service (Convex URLs, Pinata JWT).
+
+### One-Command Launch
+Launch the entire ecosystem (Platform, Backend, and Demo App) with:
+
+```bash
+docker-compose up --build
 ```
 
----
-
-## 🚀 Getting Started
-
-To get the full system running locally, follow the setup guides in each subdirectory:
-1. **Backend**: [ml-backend/README.md](./ml-backend/README.md)
-2. **Dashboard**: [frontend/README.md](./frontend/README.md)
-3. **SDK**: [sdk/README.md](./sdk/README.md)
-4. **Demo**: [aegis-demo-app/README.md](./aegis-demo-app/README.md)
+### Accessing the Platform
+- **Dashboard**: [http://localhost:3000](http://localhost:3000)
+- **Security API**: [http://localhost:8000](http://localhost:8000)
+- **Demo Application**: [http://localhost:3001](http://localhost:3001)
 
 ---
 
-Built with ❤️ for a safer web.
+## 🛡️ Security Disclaimer
+This project is developed for the **Raisoni Amravati Hackathon**. It is a functional demonstration of adaptive authentication and should be configured with production-grade encryption keys before live deployment.
+
+**Created with ❤️ by the AegisAuth Team.**

@@ -59,45 +59,48 @@ app = FastAPI(
 )
 
 # CORS middleware
-# Setting allowed origins to the frontend application URL
-ALLOWED_ORIGINS = ["http://localhost:3000", "http://localhost:3001", "http://localhost:8000"]
+# Fetch allowed origins from environment or use sensible defaults for dev
+ALLOWED_ORIGINS_STR = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3001,http://localhost:8000")
+ALLOWED_ORIGINS = [origin.strip() for origin in ALLOWED_ORIGINS_STR.split(",")]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
 # API Key & Origin Middleware
 @app.middleware("http")
 async def validate_api_key_and_origin(request: Request, call_next):
-    # Skip validation for health, root, and documentation
-    if request.url.path in ["/health", "/", "/docs", "/openapi.json"]:
+    # Skip validation for health, root, documentation and preflight
+    if request.url.path in ["/health", "/", "/docs", "/openapi.json"] or request.method == "OPTIONS":
         return await call_next(request)
     
-    # Preflight Request Bypass
-    if request.method == "OPTIONS":
-        return await call_next(request)
-    
-    # Origin validation
+    # Origin validation for non-safe methods or if origin is present
     origin = request.headers.get("origin")
     if origin and origin not in ALLOWED_ORIGINS:
-        logger.warning(f"Invalid Origin: {origin}. Allowed: {ALLOWED_ORIGINS}")
+        logger.warning(f"SECURITY: Invalid Origin Attempt: {origin}. Blocked.")
         return JSONResponse(
             status_code=403,
-            content={"detail": f"Forbidden: Invalid Origin {origin}"}
+            content={"detail": f"Forbidden: Network origin {origin} not authorized."}
         )
     
+    # API Key verification
     api_key = request.headers.get("x-api-key")
-    expected_key = os.getenv("ML_API_KEY", "aegis_master_key_2024")
+    expected_key = os.getenv("ML_API_KEY")
+    
+    # PRODUCTION SAFETY: If ML_API_KEY is not set, we use a fallback but log a critical warning
+    if not expected_key:
+        logger.error("CRITICAL: ML_API_KEY is not set in environment! Falling back to master key for safety.")
+        expected_key = "aegis_master_key_2024"
     
     if not api_key or api_key != expected_key:
-        logger.warning(f"Unauthorized access attempt: API Key mismatch or missing from {origin}")
+        logger.warning(f"SECURITY: Unauthorized access attempt from {origin or 'Unknown'}")
         return JSONResponse(
             status_code=401,
-            content={"detail": "Unauthorized: Invalid or missing API key"}
+            content={"detail": "Unauthorized: Invalid or missing endpoint key"}
         )
     
     return await call_next(request)
