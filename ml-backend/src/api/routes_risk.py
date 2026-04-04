@@ -155,11 +155,21 @@ async def predict_risk(request: Union[UnifiedRiskRequest, SDKRiskRequest]) -> Ri
             f"Level: {risk_result['risk_level']}"
         )
         
+        # Populate factors for enhanced observability
+        factors = {
+            "ipRisk": login_result.get("score", 0.0),
+            "deviceTrust": 1.0 - device_result.get("score", 0.0), # Trust is inverse of risk
+            "geoAnomaly": global_result.get("score", 0.0)
+        }
+        
         return RiskResponse(
             risk_score=risk_result["risk_score"],
             risk_level=risk_result["risk_level"],
             components=risk_result["components"],
             model_predictions=model_predictions,
+            factors=factors,
+            model_version="v1-prod",
+            timestamp=risk_result.get("timestamp")
         )
     
     except ValueError as e:

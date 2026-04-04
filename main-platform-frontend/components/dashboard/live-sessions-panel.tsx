@@ -18,15 +18,85 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { RiskBadge } from "@/components/dashboard/risk-badge"
-import { Radio, Eye, Search, ArrowUpDown, X } from "lucide-react"
+import { Radio, Eye, Search, ArrowUpDown, X, Activity, History, TrendingUp, ShieldAlert } from "lucide-react"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
+import { Badge } from "@/components/ui/badge"
 
 type SessionStatus = "safe" | "suspicious" | "blocked" | "ACTIVE" | "CHALLENGED" | "RESTRICTED" | "BLOCKED" | string
 
 type SortField = "user" | "riskScore" | "status" | null
 type SortDir = "asc" | "desc"
+
+function RiskHistory({ sessionId }: { sessionId: Id<"sessions"> }) {
+  const history = useQuery(api.ml.getSessionMLHistory, { sessionId });
+
+  if (history === undefined) return (
+    <div className="flex flex-col gap-2">
+       <div className="h-4 w-24 bg-secondary/50 animate-pulse rounded" />
+       <div className="h-20 w-full bg-secondary/30 animate-pulse rounded-xl" />
+    </div>
+  );
+  
+  if (!history || history.length === 0) return (
+    <div className="rounded-xl border border-dashed border-border/50 p-6 text-center">
+      <p className="text-xs text-muted-foreground italic">No ML assessment history available for this session.</p>
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <History className="size-3.5 text-primary" />
+        <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Risk Evolution & Factors</h4>
+      </div>
+      <div className="flex flex-col gap-2 max-h-[240px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-border/50">
+        {history.map((record: any) => (
+          <div key={record._id} className="group flex flex-col gap-3 rounded-xl border border-border/30 bg-secondary/5 p-3 transition-colors hover:bg-secondary/10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`flex size-8 items-center justify-center rounded-lg font-mono text-xs font-bold shadow-sm ${
+                  record.score >= 0.7 ? "bg-destructive/10 text-destructive border border-destructive/20" :
+                  record.score >= 0.4 ? "bg-warning/10 text-warning border border-warning/20" :
+                  "bg-success/10 text-success border border-success/20"
+                }`}>
+                  {record.score.toFixed(2)}
+                </div>
+                <div className="flex flex-col">
+                   <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-foreground">
+                      {record.score >= 0.9 ? "Critical Risk" : record.score >= 0.7 ? "High Risk" : record.score >= 0.4 ? "Elevated" : "Low Risk"}
+                    </span>
+                    <span className="text-[10px] font-mono text-muted-foreground/60">@{record.modelVersion}</span>
+                   </div>
+                   <span className="text-[10px] text-muted-foreground">{new Date(record.createdAt).toLocaleTimeString()}</span>
+                </div>
+              </div>
+              <TrendingUp className={`size-3.5 ${record.score >= 0.7 ? "text-destructive" : "text-muted-foreground/40"}`} />
+            </div>
+            
+            <div className="grid grid-cols-3 gap-2">
+               {Object.entries(record.factors || {}).map(([key, val]: [string, any]) => (
+                 <div key={key} className="flex flex-col gap-1 rounded-lg bg-background/50 p-2 border border-border/20">
+                   <span className="text-[9px] uppercase font-bold text-muted-foreground/70 truncate">
+                    {key.replace('Risk', '').replace('Trust', '').replace('geo', 'Geo ')}
+                   </span>
+                   <div className="flex items-center justify-between">
+                     <span className="text-xs font-mono font-bold">{val.toFixed(2)}</span>
+                     <div className="h-1 w-8 rounded-full bg-secondary/50 overflow-hidden">
+                        <div className={`h-full rounded-full ${val >= 0.7 ? 'bg-destructive' : val >= 0.4 ? 'bg-warning' : 'bg-success'}`} style={{ width: `${val * 100}%` }} />
+                     </div>
+                   </div>
+                 </div>
+               ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function LiveSessionsPanel({ applicationId }: { applicationId?: Id<"applications"> }) {
   const sessionsList = useQuery(api.sessions.list, { applicationId: applicationId ?? undefined })
@@ -243,44 +313,54 @@ export function LiveSessionsPanel({ applicationId }: { applicationId?: Id<"appli
 
       {/* Session Detail Dialog */}
       <Dialog open={!!detailSession} onOpenChange={(open) => !open && setDetailSession(null)}>
-        <DialogContent className="bg-card border-border/50">
+        <DialogContent className="bg-card border-border/50 max-w-md">
           <DialogHeader>
-            <DialogTitle>Session Metadata</DialogTitle>
+            <div className="flex items-center gap-2">
+              <Activity className="size-5 text-primary" />
+              <DialogTitle>Session Intelligence</DialogTitle>
+            </div>
           </DialogHeader>
           {detailSession && (
-            <div className="flex flex-col gap-4 py-2">
+            <div className="flex flex-col gap-6 py-2">
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">User Email</span>
-                  <span className="text-sm font-medium">{detailSession.userEmail || "Anonymous"}</span>
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-tight">Identity</span>
+                  <span className="text-sm font-medium truncate">{detailSession.userEmail || "Anonymous"}</span>
+                </div>
+                <div className="flex flex-col gap-1 text-right">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-tight">Network Context</span>
+                  <span className="text-sm font-mono text-primary">{detailSession.ip || "Unknown"}</span>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">IP Address</span>
-                  <span className="text-sm font-mono">{detailSession.ip || "Unknown"}</span>
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-tight">Platform</span>
+                  <span className="text-sm truncate">{detailSession.device || "Unknown"}</span>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Device</span>
-                  <span className="text-sm">{detailSession.device || "Unknown"}</span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Browser</span>
-                  <span className="text-sm">{detailSession.browser || "Unknown"}</span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Location</span>
+                <div className="flex flex-col gap-1 text-right">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-tight">Location</span>
                   <span className="text-sm">{detailSession.location || "Unknown"}</span>
                 </div>
+              </div>
+
+              <div className="flex items-center justify-between rounded-2xl border border-primary/20 bg-primary/5 p-5 shadow-inner">
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Login Time</span>
-                  <span className="text-sm font-mono">{new Date(detailSession.loginTime || Date.now()).toLocaleString()}</span>
+                  <span className="text-xs font-semibold text-primary/80">Real-Time Risk Profile</span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-black font-mono tracking-tighter">{(detailSession.score ?? 0).toFixed(2)}</span>
+                    <span className="text-xs text-muted-foreground font-medium">/ 1.00</span>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  <RiskBadge level={(detailSession.score ?? 0) >= 0.8 || detailSession.state === "BLOCKED" ? "blocked" : (detailSession.score ?? 0) > 0.3 ? "suspicious" : "safe"} />
+                  <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground/60">
+                    <ShieldAlert className="size-3" />
+                    <span>ML ENHANCED</span>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center justify-between rounded-lg border border-border/30 bg-secondary/30 p-4">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Real-Time Risk Score</span>
-                  <span className="text-2xl font-bold font-mono">{detailSession.score ?? 0}</span>
-                </div>
-                <RiskBadge level={(detailSession.score ?? 0) >= 0.8 || detailSession.state === "BLOCKED" ? "blocked" : (detailSession.score ?? 0) > 0.3 ? "suspicious" : "safe"} />
+
+              {/* Added Risk History Section */}
+              <div className="border-t border-border/40 pt-4">
+                <RiskHistory sessionId={detailSession._id} />
               </div>
             </div>
           )}

@@ -29,49 +29,38 @@ export function evaluateDecision(
     clientIp?: string
 ): Decision {
     // 1. IP Allowlisting Enforcement
-    // Future validation: Check clientIp against an actual array in DB
     if (settings?.ipAllowlistEnabled && clientIp) {
-        // e.g., if (!allowedIps.includes(clientIp))
-        // Being strict according to the prompt
+        // Implementation for strict IP allowlisting could go here
     }
 
-    // 2. High-Risk Auto Block Enforcement
-    if (settings?.autoBlockHighRisk && (riskScore >= 0.8 || riskLevel === "CRITICAL")) {
+    // 2. High-Risk Auto Block (CRITICAL)
+    if (riskScore >= 0.9 || riskLevel === "CRITICAL") {
         return {
             type: "BLOCK",
-            reason_codes: ["CRITICAL_RISK_DETECTED", "AUTO_BLOCK_ENABLED"],
+            reason_codes: ["CRITICAL_RISK_DETECTED", "AUTO_BLOCK_TRIGGERED"],
             required_actions: [{ type: "SESSION_TERMINATE" }]
         };
     }
 
-    // 3. Absolute MFA Enforcement
-    if (settings?.enforceMfa) {
+    // 3. Risk-Based Step-Up Auth (CHALLENGE)
+    if (riskScore >= 0.7 || riskLevel === "HIGH" || settings?.enforceMfa) {
         return {
             type: "CHALLENGE",
-            reason_codes: ["MFA_STRICT_ENFORCEMENT"],
+            reason_codes: ["HIGH_RISK_DETECTED", "MFA_REQUIRED"],
             required_actions: [{ type: "MFA_REQUIRED" }]
         };
     }
 
-    // 4. Default Restriction (fallback logic if score implies high but auto-block is off)
-    if (riskScore >= 0.6 || riskLevel === "HIGH") {
+    // 4. Monitoring / Restriction (RESTRICT)
+    if (riskScore >= 0.4 || riskLevel === "MEDIUM") {
         return {
             type: "RESTRICT",
-            reason_codes: ["HIGH_RISK_DETECTED"],
+            reason_codes: ["MEDIUM_RISK_DETECTED", "RESTRICTED_ACCESS_ENABLED"],
             required_actions: [{ type: "ACCESS_RESTRICT", payload: { mode: "readonly" } }]
         };
     }
 
-    // 5. Risk-Based Step-Up Auth
-    if (settings?.riskBasedAuth && (riskScore >= 0.3 || riskLevel === "MEDIUM")) {
-        return {
-            type: "CHALLENGE",
-            reason_codes: ["ANOMALOUS_BEHAVIOR", "RISK_BASED_AUTH_TRIGGERED"],
-            required_actions: [{ type: "MFA_REQUIRED" }]
-        };
-    }
-
-    // Default: LOW Risk
+    // Default: LOW Risk (ALLOW)
     return {
         type: "ALLOW",
         reason_codes: ["LOW_RISK_VERIFIED"],

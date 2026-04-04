@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from src.api.schemas import LoginRequest, ModelPredictionResponse
 from src.inference.login_predictor import predict_login_anomaly
 from src.utils.logger import logger
+from src.utils.convex import get_convex_client
 
 router = APIRouter(prefix="/auth", tags=["Auth Bridge"])
 
@@ -47,7 +48,7 @@ class SignupPayload(LoginPayload):
 # --- Routes ---
 
 @router.post("/signup", response_model=AuthResponse)
-async def signup(payload: SignupPayload):
+async def signup(payload: SignupPayload, request: Request):
     """
     Handle user signup and return initial decision.
     """
@@ -63,6 +64,26 @@ async def signup(payload: SignupPayload):
         required_actions=[DecisionAction(type="NONE")],
         reason_codes=["NEW_USER_REGISTRATION"]
     )
+
+    # --- Convex Integration ---
+    try:
+        api_key = request.headers.get("x-api-key")
+        client = get_convex_client()
+        if client and api_key:
+            app = client.query("applications:getByApiKey", {"apiKey": api_key})
+            if app:
+                client.mutation("sessions:createSession", {
+                    "applicationId": app["_id"],
+                    "userEmail": payload.email,
+                    "device": "SDK-Device",
+                    "browser": request.headers.get("user-agent", "Unknown"),
+                    "location": "Unknown",
+                    "ip": request.client.host if request.client else "127.0.0.1",
+                    "score": 0.0,
+                    "initialState": "ACTIVE"
+                })
+    except Exception as e:
+        logger.warning(f"Failed to report signup session to Convex: {e}")
     
     return AuthResponse(
         data=AuthResponseData(
@@ -75,7 +96,7 @@ async def signup(payload: SignupPayload):
     )
 
 @router.post("/login", response_model=AuthResponse)
-async def login(payload: LoginPayload):
+async def login(payload: LoginPayload, request: Request):
     """
     Handle user login, run ML risk assessment, and return decision.
     """
@@ -116,6 +137,32 @@ async def login(payload: LoginPayload):
             reason_codes=[f"RISK_SCORE_{score:.2f}"]
         )
         
+        # --- Convex Integration ---
+        try:
+            api_key = request.headers.get("x-api-key")
+            client = get_convex_client()
+            if client and api_key:
+                app = client.query("applications:getByApiKey", {"apiKey": api_key})
+                if app:
+                    # Map decision to Convex state
+                    state_map = {
+                        "ALLOW": "ACTIVE",
+                        "CHALLENGE": "CHALLENGED",
+                        "BLOCK": "BLOCKED"
+                    }
+                    client.mutation("sessions:createSession", {
+                        "applicationId": app["_id"],
+                        "userEmail": payload.email,
+                        "device": "SDK-Device",
+                        "browser": request.headers.get("user-agent", "Unknown"),
+                        "location": "Unknown",
+                        "ip": request.client.host if request.client else "127.0.0.1",
+                        "score": score,
+                        "initialState": state_map.get(decision_type, "EVALUATING")
+                    })
+        except Exception as e:
+            logger.warning(f"Failed to report login session to Convex: {e}")
+
         session_id = f"sess_{uuid.uuid4().hex[:12]}"
         correlation_id = f"corr_{uuid.uuid4().hex[:12]}"
         

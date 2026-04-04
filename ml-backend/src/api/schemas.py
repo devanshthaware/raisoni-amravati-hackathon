@@ -249,6 +249,8 @@ class RiskResponse(BaseModel):
     risk_level: str = Field(..., description="Risk level (LOW, MEDIUM, HIGH, CRITICAL)")
     components: Dict[str, float] = Field(..., description="Individual model scores (flat)")
     model_predictions: Optional[Dict[str, ModelPredictionResponse]] = None
+    factors: Optional[Dict[str, float]] = None
+    model_version: Optional[str] = "v1-prod"
     timestamp: Optional[int] = None
     
     class Config:
@@ -264,6 +266,12 @@ class RiskResponse(BaseModel):
                     "global": 0.3,
                     "rule_based": 0.0,
                 },
+                "factors": {
+                    "ipRisk": 0.3,
+                    "deviceTrust": 0.2,
+                    "geoAnomaly": 0.5
+                },
+                "model_version": "v1-prod",
                 "timestamp": 123456789,
             }
         }

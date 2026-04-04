@@ -302,6 +302,7 @@ export const createSession = mutation({
         location: v.string(),
         ip: v.string(),
         score: v.number(),
+        initialState: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         // DERIVE IDENTITY: Remove client trust
@@ -314,10 +315,15 @@ export const createSession = mutation({
         const correlationId = `corr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
         const sessionId = await ctx.db.insert("sessions", {
-            ...args,
-            userEmail: userEmail, // Enforce verified email
+            applicationId: args.applicationId,
+            userEmail,
+            device: args.device,
+            browser: args.browser,
+            location: args.location,
+            ip: args.ip,
+            score: args.score,
             loginTime: Date.now(),
-            state: "NEW", 
+            state: args.initialState || "NEW", 
             stateVersion: 0,
             updatedAt: Date.now(),
             correlationId,

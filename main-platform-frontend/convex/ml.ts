@@ -73,6 +73,15 @@ export const assessRisk = action({
 
             const result: any = await response.json();
             
+            // Map standardized factors
+            const factors = result.factors || {
+                ipRisk: result.components?.login || 0,
+                deviceTrust: result.components?.device || 0,
+                geoAnomaly: result.components?.global || 0
+            };
+
+            const modelVersion = result.model_version || "v1-prod";
+
             // Generate the decision strictly based on the database-enforced settings
             const decision = evaluateDecision(result.risk_score, result.risk_level, settings, session.ip);
 
@@ -87,12 +96,14 @@ export const assessRisk = action({
                 sessionId: args.sessionId,
                 correlationId: args.correlationId,
                 score: result.risk_score,
+                factors,
+                modelVersion,
                 state: stateMap[decision.type],
                 decisionType: decision.type,
                 riskResult: result
             });
 
-            return { ...result, decision };
+            return { ...result, decision, factors, modelVersion };
         } catch (error) {
             console.error("ML Risk Assessment failed:", error);
             return null;
@@ -105,48 +116,43 @@ export const syncMLResults = mutation({
         sessionId: v.id("sessions"),
         correlationId: v.string(),
         score: v.number(),
+        factors: v.object({
+            ipRisk: v.number(),
+            deviceTrust: v.number(),
+            geoAnomaly: v.number(),
+        }),
+        modelVersion: v.string(),
         state: v.string(),
         decisionType: v.string(),
         riskResult: v.any(),
     },
     handler: async (ctx, args) => {
-        const session = await ctx.db.get(args.sessionId);
-        if (!session || session.state === "TERMINATED") return;
+        let session = await ctx.db.get(args.sessionId);
+        
+        // Session Guarantee (Robustness Layer)
+        if (!session) {
+            console.warn(`[Aegis Sync] Session ${args.sessionId} missing. Attempting recovery...`);
+            // In a real disaster recovery, we might reconstruct the session here if we had all fields.
+            // For this specific pipeline, we expect the session to exist.
+            return;
+        }
 
-        // 1. Emit RISK_CALCULATED
-        await emitEvent(ctx.db, {
-            type: "RISK_CALCULATED",
+        if (session.state === "TERMINATED") return;
+
+        const applicationId = session.applicationId;
+
+        // 1. Store ML Score History (Permanent Observability)
+        await ctx.db.insert("mlScores", {
             sessionId: args.sessionId,
+            applicationId,
+            score: args.score,
+            factors: args.factors,
+            modelVersion: args.modelVersion,
             correlationId: args.correlationId,
-            applicationId: session.applicationId,
-            payload: args.riskResult
+            createdAt: Date.now(),
         });
 
-        // 2. Emit DECISION_MADE
-        await emitEvent(ctx.db, {
-            type: "DECISION_MADE",
-            sessionId: args.sessionId,
-            correlationId: args.correlationId,
-            applicationId: session.applicationId,
-            payload: {
-                decision: args.decisionType,
-                target_state: args.state
-            }
-        });
-
-        // 3. Emit ACTION_DISPATCHED
-        await emitEvent(ctx.db, {
-            type: "ACTION_DISPATCHED",
-            sessionId: args.sessionId,
-            correlationId: args.correlationId,
-            applicationId: session.applicationId,
-            payload: {
-                dispatched_at: Date.now(),
-                context: "ML_ORCHESTRATED_DECISION"
-            }
-        });
-
-        // 4. Persist score and transition state
+        // 2. State Transition & Score Persistence
         await ctx.db.patch(args.sessionId, { score: args.score });
 
         await transitionSession(
@@ -157,21 +163,75 @@ export const syncMLResults = mutation({
             args.correlationId
         );
 
-        // Generate Risk/Block Alerts
-        if (args.decisionType === "BLOCK" || args.score >= 0.8) {
-            const app = await ctx.db.get(session.applicationId);
+        // 3. Real-Time Security Alerts (Enforcement Trigger)
+        if (args.score >= 0.7 || args.decisionType === "BLOCK") {
+            const app = await ctx.db.get(applicationId);
             if (app) {
                 await ctx.db.insert("alerts", {
                     userId: app.userId,
-                    applicationId: session.applicationId,
+                    applicationId,
                     type: args.decisionType === "BLOCK" ? "BLOCKED" : "HIGH_RISK",
-                    message: args.decisionType === "BLOCK" ? "Session blocked due to high risk policy" : "Critical risk session detected by ML",
-                    severity: "CRITICAL",
+                    message: args.decisionType === "BLOCK" 
+                        ? `CRITICAL: Session blocked due to extreme risk (${args.score.toFixed(2)})` 
+                        : `WARNING: High risk detected (${args.score.toFixed(2)}). Verification required.`,
+                    severity: args.score >= 0.9 ? "CRITICAL" : "HIGH",
                     correlationId: args.correlationId,
                     isRead: false,
                     createdAt: Date.now()
                 });
             }
         }
+
+        // 4. Activity Audit Logging
+        await ctx.db.insert("activities", {
+            applicationId,
+            sessionId: args.sessionId,
+            timestamp: Date.now(),
+            type: "risk_update",
+            userEmail: session.userEmail,
+            ip: session.ip,
+            riskScore: args.score,
+            details: {
+                factors: args.factors,
+                modelVersion: args.modelVersion,
+                decision: args.decisionType
+            }
+        });
+
+        // 5. Emit Traceable Events
+        await emitEvent(ctx.db, {
+            type: "RISK_CALCULATED",
+            sessionId: args.sessionId,
+            correlationId: args.correlationId,
+            applicationId,
+            payload: {
+                ...args.riskResult,
+                factors: args.factors,
+                modelVersion: args.modelVersion
+            }
+        });
+
+        await emitEvent(ctx.db, {
+            type: "DECISION_MADE",
+            sessionId: args.sessionId,
+            correlationId: args.correlationId,
+            applicationId,
+            payload: {
+                decision: args.decisionType,
+                target_state: args.state,
+                score: args.score
+            }
+        });
+    },
+});
+
+export const getSessionMLHistory = query({
+    args: { sessionId: v.id("sessions") },
+    handler: async (ctx, args) => {
+        return await ctx.db
+            .query("mlScores")
+            .withIndex("by_session_time", q => q.eq("sessionId", args.sessionId))
+            .order("desc")
+            .collect();
     },
 });

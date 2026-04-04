@@ -146,5 +146,22 @@ export default defineSchema({
         correlationId: v.optional(v.string()),
         isRead: v.boolean(),
         createdAt: v.number(),
-    }).index("by_user", ["userId"]).index("by_application", ["applicationId"]).index("by_is_read", ["isRead"])
+    }).index("by_user", ["userId"]).index("by_application", ["applicationId"]).index("by_is_read", ["isRead"]),
+    mlScores: defineTable({
+        sessionId: v.id("sessions"),
+        applicationId: v.id("applications"),
+        score: v.float64(),
+        factors: v.object({
+            ipRisk: v.float64(),
+            deviceTrust: v.float64(),
+            geoAnomaly: v.float64()
+        }),
+        modelVersion: v.string(),
+        correlationId: v.string(),
+        createdAt: v.number()
+    })
+    .index("by_session", ["sessionId"])
+    .index("by_session_time", ["sessionId", "createdAt"])
+    .index("by_application", ["applicationId"])
+    .index("by_correlation", ["correlationId"])
 });
