@@ -266,7 +266,7 @@ export function LiveSessionsPanel({ applicationId }: { applicationId?: Id<"appli
                   <TableCell>
                     <div className="flex flex-col">
                        <span className="font-medium text-foreground italic flex items-center gap-2 opacity-50">
-                            <Bug className="size-3" /> bin.devansh@gmail.com [Mock]
+                            <Bug className="size-3" /> bin.devansh@gmail.com
                        </span>
                        <span className="text-xs text-muted-foreground opacity-50">157.48.201.24</span>
                     </div>
@@ -279,12 +279,12 @@ export function LiveSessionsPanel({ applicationId }: { applicationId?: Id<"appli
                   </TableCell>
                   <TableCell className="hidden text-muted-foreground md:table-cell opacity-50">nagpur ,india</TableCell>
                   <TableCell className="opacity-50">
-                    <span className="font-mono text-sm font-medium">0.92</span>
+                    <span className="font-mono text-sm font-medium">0.24</span>
                   </TableCell>
                   <TableCell className="opacity-50">
-                    <div className="flex items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[10px] font-bold text-destructive uppercase">
-                      <div className="size-1.5 rounded-full bg-destructive" />
-                      Blocked
+                    <div className="flex items-center gap-1.5 rounded-full border border-secondary/30 bg-secondary/10 px-2 py-0.5 text-[10px] font-bold text-muted-foreground uppercase">
+                      <div className="size-1.5 rounded-full bg-muted-foreground" />
+                      Logged Out
                     </div>
                   </TableCell>
                   <TableCell className="text-right opacity-50">

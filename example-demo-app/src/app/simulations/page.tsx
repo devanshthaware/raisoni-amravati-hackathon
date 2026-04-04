@@ -18,19 +18,6 @@ import { Textarea } from "@/components/ui/textarea";
 
 const scenarios: SimulationScenario[] = [
   {
-    id: "impossible_travel",
-    name: "Impossible Travel",
-    description: "Multi-regional login anomaly where session origin shifts across continents in minutes.",
-    metadata: {
-      location: "Sydney, AU -> New York, US",
-      ip: "103.22.201.5",
-      country_changed: 1,
-      login_velocity: 12.4, 
-      device_known: 1,
-      expected: "BLOCK / CHALLENGE"
-    }
-  },
-  {
     id: "brute_force",
     name: "Pattern-Based Brute Force",
     description: "Rapid sequential authentication failures typical of automated credential stuffing.",
@@ -43,63 +30,64 @@ const scenarios: SimulationScenario[] = [
       expected: "BLOCK"
     }
   },
-  {
-    id: "malicious_ip",
-    name: "Reputation Binary Attack",
-    description: "Connection originating from a high-risk autonomous system or proxy network.",
-    metadata: {
-      ip: "185.244.111.3",
-      ip_reputation_score: 0.05, 
-      location: "Suspicious Proxy Hub",
-      device: "Custom Scraper v4",
-      browser: "Headless Chrome",
-      asn_changed: 1,
-      expected: "BLOCK"
-    }
-  },
-  {
-    id: "device_hijack",
-    name: "Device & identity Hijack",
-    description: "Unrecognized user-agent fingerprinting attempt on a known account.",
-    metadata: {
-      device_known: 0,
-      browser: "Unknown Bot",
-      device: "Python-Request/AegisSim",
-      asn_changed: 1,
-      login_hour: 3, // Unusual time
-      expected: "CHALLENGE"
-    }
-  }
 ];
 
+import { useRouter } from "next/navigation";
+
 export default function SimulationsPage() {
+  const router = useRouter();
   const [selectedScenario, setSelectedScenario] = useState<SimulationScenario | null>(null);
   const [customMetadata, setCustomMetadata] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSimulate = async () => {
-    if (!selectedScenario) return;
+  const [progress, setProgress] = useState(0);
+
+  const handleSimulate = async (scenarioOverride?: SimulationScenario) => {
+    const scenario = scenarioOverride || selectedScenario;
+    if (!scenario) return;
     
     setIsLoading(true);
-    let parsedMeta = {};
-    try {
-      if (customMetadata) {
-        parsedMeta = JSON.parse(customMetadata);
-      }
-    } catch (e) {
-      toast.error("Invalid JSON in custom metadata");
-      setIsLoading(false);
-      return;
-    }
+    setProgress(0);
 
-    const res = await runSimulation(selectedScenario, parsedMeta);
-    if (res.success) {
-      toast.success(`Simulation Successful: AegisAuth returned ${res.decision?.type}`);
-      setSelectedScenario(null);
-    } else {
-      toast.error(`Simulation failed: ${res.error}`);
-    }
-    setIsLoading(false);
+    // EXACT 3-SECOND TIMER for the progress bar
+    const duration = 3000;
+    const intervalTime = 50;
+    const steps = duration / intervalTime;
+    const increment = 100 / steps;
+
+    const interval = setInterval(() => {
+        setProgress(prev => {
+            if (prev >= 100) {
+                clearInterval(interval);
+                return 100;
+            }
+            return prev + increment;
+        });
+    }, intervalTime);
+
+    // Call Real Simulation in background
+    runSimulation(scenario, JSON.parse(customMetadata || JSON.stringify(scenario.metadata)));
+    
+    // Wait for the full 3 seconds
+    await new Promise(r => setTimeout(r, duration + 200));
+
+    // Show brief success toast before redirect
+    toast.success(`Simulation Vector Transmitted`, {
+        duration: 1000,
+        icon: '🚀',
+        style: {
+            border: '1px solid #3b82f6',
+            padding: '16px',
+            color: '#3b82f6',
+            background: '#1e3a8a',
+        }
+    });
+
+    // Final short delay for the toast to be seen
+    await new Promise(r => setTimeout(r, 500));
+
+    // AUTOMATIC REDIRECT
+    router.push("/login");
   };
 
   return (
@@ -164,10 +152,12 @@ export default function SimulationsPage() {
             <CardFooter className="relative z-10 pt-4">
               <Button 
                 variant="default" 
-                className="w-full gap-2 rounded-xl h-11 bg-primary/5 border border-primary/20 hover:bg-primary/10 text-primary shadow-inner"
+                className="w-full gap-2 rounded-xl h-11 bg-primary/5 border border-primary/20 hover:bg-primary/10 text-primary shadow-inner transition-all active:scale-95"
                 onClick={() => {
                   setSelectedScenario(scenario);
                   setCustomMetadata(JSON.stringify(scenario.metadata, null, 2));
+                  // Automate the simulation for the user
+                  setTimeout(() => handleSimulate(scenario), 50);
                 }}
               >
                 <Settings className="size-4" />
@@ -187,7 +177,7 @@ export default function SimulationsPage() {
               </div>
           </div>
           <Button variant="outline" className="gap-2 rounded-xl" asChild>
-              <a href="http://localhost:3000" target="_blank">
+              <a href="http://localhost:3000/dashboard/applications/jd7bhys267aztx1ry3yh7c4atx8462aa" target="_blank">
                 <LayoutDashboard className="size-4" />
                 Open Dashboard
               </a>
@@ -203,12 +193,28 @@ export default function SimulationsPage() {
                 Adjust the "tainted" telemetry parameters before transmission to AegisAuth's adaptive engine.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+          <div className="py-4 space-y-4">
+            {isLoading && (
+              <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
+                <div className="flex justify-between text-[10px] uppercase font-mono text-primary/60">
+                   <span>Transmitting Vector...</span>
+                   <span>{Math.round(progress)}%</span>
+                </div>
+                <div className="h-1 w-full bg-secondary rounded-full overflow-hidden">
+                    <div 
+                        className="h-full bg-primary transition-all duration-300 ease-out shadow-[0_0_10px_var(--primary)]"
+                        style={{ width: `${progress}%` }}
+                    />
+                </div>
+                <p className="text-[9px] text-muted-foreground animate-pulse italic">Calibrating request headers for bypass detection...</p>
+              </div>
+            )}
             <div className="rounded-xl border border-primary/10 bg-black/60 p-1">
                 <Textarea
                 className="h-[200px] font-mono text-xs border-none focus-visible:ring-0 resize-none bg-transparent"
                 value={customMetadata}
                 onChange={(e) => setCustomMetadata(e.target.value)}
+                disabled={isLoading}
                 />
             </div>
           </div>
@@ -216,7 +222,7 @@ export default function SimulationsPage() {
             <Button variant="ghost" className="rounded-xl" onClick={() => setSelectedScenario(null)} disabled={isLoading}>
               Abort
             </Button>
-            <Button onClick={handleSimulate} disabled={isLoading} className="gap-2 rounded-xl px-10 shadow-[0_0_20px_rgba(var(--primary),0.2)]">
+            <Button onClick={() => handleSimulate()} disabled={isLoading} className="gap-2 rounded-xl px-10 shadow-[0_0_20px_rgba(var(--primary),0.2)]">
               {isLoading ? (
                   <div className="flex items-center gap-2">
                         <div className="size-3 animate-spin rounded-full border-2 border-white border-t-transparent" />

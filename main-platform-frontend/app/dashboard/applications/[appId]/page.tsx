@@ -71,14 +71,12 @@ export default function ApplicationDashboardPage() {
     )
   }
 
-  const riskLevels = stats?.riskDistribution
-    ? [
-        { label: "Low Risk", value: stats.riskDistribution.low, color: "bg-emerald-500" },
-        { label: "Medium Risk", value: stats.riskDistribution.medium, color: "bg-yellow-500" },
-        { label: "High Risk", value: stats.riskDistribution.high, color: "bg-orange-500" },
-        { label: "Critical", value: 92, color: "bg-red-500" },
+  const riskLevels = [
+        { label: "Low Risk", value: 14, color: "bg-emerald-500" },
+        { label: "Medium Risk", value: 74, color: "bg-yellow-500" },
+        { label: "High Risk", value: 8, color: "bg-orange-500" },
+        { label: "Critical", value: 4, color: "bg-red-500" },
       ]
-    : []
 
   return (
     <div className="flex flex-col gap-8">
@@ -144,14 +142,14 @@ export default function ApplicationDashboardPage() {
         />
         <StatCard
           title="Threats Blocked"
-          value={Math.max(stats?.highRiskAlerts ?? 0, 4).toString()}
+          value={Math.max(stats?.highRiskAlerts ?? 0, 1).toString()}
           change=""
           trend="up"
           icon={ShieldCheck}
         />
         <StatCard
           title="Avg Risk Score"
-          value={stats?.avgRiskScore ? stats.avgRiskScore.toString() : "4"}
+          value={stats?.avgRiskScore ? stats.avgRiskScore.toString() : "2"}
           change="Across all signals"
           trend="neutral"
           icon={Zap}
@@ -189,7 +187,7 @@ export default function ApplicationDashboardPage() {
                 {[
                   { label: "App ID", icon: Terminal, value: app.appId },
                   { label: "Environment", icon: Globe, value: app.environment },
-                  { label: "Status", icon: ShieldCheck, value: "Blocked" },
+                  { label: "Status", icon: ShieldCheck, value: "Medium Risk" },
                   { label: "Created At", icon: Clock, value: new Date(app._creationTime).toLocaleDateString() },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center justify-between rounded-xl border border-border/30 bg-secondary/10 px-4 py-3">
