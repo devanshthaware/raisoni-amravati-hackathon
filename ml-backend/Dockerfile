@@ -1,5 +1,8 @@
-# Build stage
+# Google Cloud Run optimized build
 FROM python:3.11-slim
+
+# Allow statements and log messages to immediately appear in the Knative logs
+ENV PYTHONUNBUFFERED True
 
 WORKDIR /app
 
@@ -12,11 +15,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Copy local code to the container image.
 COPY . .
 
-# Expose port
-EXPOSE 8000
-
-# Command to run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Use the PORT environment variable as required by Cloud Run.
+# Default to 8080 if not set.
+CMD exec uvicorn src.api.main:app --host 0.0.0.0 --port ${PORT:-8080} --workers 1
