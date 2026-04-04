@@ -84,6 +84,7 @@ export default defineSchema({
         state: v.optional(v.string()), // "NEW" | "EVALUATING" | "ACTIVE" | "CHALLENGED" | "RESTRICTED" | "BLOCKED" | "TERMINATED"
         stateVersion: v.optional(v.float64()),
         updatedAt: v.optional(v.float64()),
+        pinataCid: v.optional(v.string()), // Added for secure metadata storage
         // Legacy fields from old documents
         riskScore: v.optional(v.float64()),
         status: v.optional(v.string()),

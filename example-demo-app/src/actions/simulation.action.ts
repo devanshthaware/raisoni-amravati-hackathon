@@ -2,6 +2,7 @@
 
 import { login } from "@devanshthaware/aegis-auth";
 import { revalidatePath } from "next/cache";
+import "@/lib/aegis"; // Important: This initializes the SDK with config
 
 export type SimulationScenario = {
   id: string;
@@ -30,8 +31,12 @@ export async function runSimulation(scenario: SimulationScenario, customMetadata
     
     revalidatePath("/");
     return { success: true, decision: response.decision };
-  } catch (error) {
-    console.error("Simulation error:", error);
-    return { success: false, error: "Failed to run simulation" };
+  } catch (error: any) {
+    console.error("Simulation error details:", {
+        message: error.message,
+        stack: error.stack,
+        config: error.config ? { url: error.config.url, headers: error.config.headers } : "N/A"
+    });
+    return { success: false, error: `Failed to run simulation: ${error.message}` };
   }
 }

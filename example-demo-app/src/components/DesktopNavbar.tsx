@@ -32,54 +32,54 @@ async function DesktopNavbar() {
         </Link>
       </Button>
 
-      {user ? (
-        <>
-          <SecurityBell />
-          
-          <Button variant="ghost" className="flex items-center gap-2" asChild>
-            <Link href="/simulations">
-              <Bug className="w-4 h-4" />
-              <span className="hidden lg:inline">Simulations</span>
-            </Link>
-          </Button>
+        <Button variant="outline" className="flex items-center gap-2 border-primary/50 bg-primary/5 hover:bg-primary/10 text-primary transition-all shadow-[0_0_15px_rgba(var(--primary),0.1)]" asChild>
+          <Link href="/simulations">
+            <Bug className="w-4 h-4 animate-pulse" />
+            <span className="hidden lg:inline font-bold">Threat Simulations</span>
+          </Link>
+        </Button>
 
-          <Button variant="ghost" className="flex items-center gap-2" asChild>
-            <Link href="/notifications">
-              <BellIcon className="w-4 h-4" />
-              <span className="hidden lg:inline">Notifications</span>
-            </Link>
-          </Button>
-          
-          <Button variant="ghost" className="flex items-center gap-2" asChild>
-            <Link href={`/profile/${user.username}`}>
-              <UserIcon className="w-4 h-4" />
-              <span className="hidden lg:inline">Profile</span>
-            </Link>
-          </Button>
-
-          <form action={logoutUser}>
-            <Button variant="ghost" className="flex items-center gap-2 text-red-500 hover:text-red-600 hover:bg-red-50">
-              <LogOutIcon className="w-4 h-4" />
-              <span className="hidden lg:inline">Logout</span>
+        {user ? (
+          <>
+            <SecurityBell />
+            
+            <Button variant="ghost" className="flex items-center gap-2" asChild>
+              <Link href="/notifications">
+                <BellIcon className="w-4 h-4" />
+                <span className="hidden lg:inline">Notifications</span>
+              </Link>
             </Button>
-          </form>
-        </>
-      ) : (
-        <>
-          <Button variant="outline" className="flex items-center gap-2" asChild>
-            <Link href="/login">
-              <LogInIcon className="w-4 h-4" />
-              <span>Login</span>
-            </Link>
-          </Button>
-          <Button variant="default" className="flex items-center gap-2" asChild>
-            <Link href="/signup">
-              <UserPlusIcon className="w-4 h-4" />
-              <span>Sign Up</span>
-            </Link>
-          </Button>
-        </>
-      )}
+            
+            <Button variant="ghost" className="flex items-center gap-2" asChild>
+              <Link href={`/profile/${user.username}`}>
+                <UserIcon className="w-4 h-4" />
+                <span className="hidden lg:inline">Profile</span>
+              </Link>
+            </Button>
+
+            <form action={logoutUser}>
+              <Button variant="ghost" className="flex items-center gap-2 text-red-500 hover:text-red-600 hover:bg-red-50">
+                <LogOutIcon className="w-4 h-4" />
+                <span className="hidden lg:inline">Logout</span>
+              </Button>
+            </form>
+          </>
+        ) : (
+          <>
+            <Button variant="outline" className="flex items-center gap-2" asChild>
+              <Link href="/login">
+                <LogInIcon className="w-4 h-4" />
+                <span>Login</span>
+              </Link>
+            </Button>
+            <Button variant="default" className="flex items-center gap-2" asChild>
+              <Link href="/signup">
+                <UserPlusIcon className="w-4 h-4" />
+                <span>Sign Up</span>
+              </Link>
+            </Button>
+          </>
+        )}
     </div>
   );
 }

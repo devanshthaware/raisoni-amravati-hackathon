@@ -303,6 +303,7 @@ export const createSession = mutation({
         ip: v.string(),
         score: v.number(),
         initialState: v.optional(v.string()),
+        pinataCid: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         // DERIVE IDENTITY: Remove client trust
@@ -327,6 +328,7 @@ export const createSession = mutation({
             stateVersion: 0,
             updatedAt: Date.now(),
             correlationId,
+            pinataCid: args.pinataCid,
         });
 
         // Emit Initial Signal

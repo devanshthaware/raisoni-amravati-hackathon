@@ -50,10 +50,10 @@ function MobileNavbar() {
               </Link>
             </Button>
 
-            <Button variant="ghost" className="flex items-center gap-3 justify-start" asChild onClick={() => setShowMobileMenu(false)}>
+            <Button variant="outline" className="flex items-center gap-3 justify-start border-primary/50 text-primary bg-primary/5" asChild onClick={() => setShowMobileMenu(false)}>
               <Link href="/simulations">
-                <Bug className="w-4 h-4" />
-                Simulations
+                <Bug className="w-4 h-4 animate-pulse" />
+                Threat Simulations
               </Link>
             </Button>
             <Button variant="ghost" className="flex items-center gap-3 justify-start" asChild onClick={() => setShowMobileMenu(false)}>

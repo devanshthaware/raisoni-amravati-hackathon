@@ -157,6 +157,18 @@ async def login(payload: LoginPayload, request: Request):
                         "CHALLENGE": "CHALLENGED",
                         "BLOCK": "BLOCKED"
                     }
+                    # --- Secure Metadata Storage (Pinata/IPFS) ---
+                    pinata_cid = None
+                    if metadata:
+                        try:
+                            from src.utils.encryption import encrypt_metadata
+                            from src.utils.pinata import pin_metadata_to_ipfs
+                            
+                            encrypted_str = encrypt_metadata(metadata)
+                            pinata_cid = pin_metadata_to_ipfs(encrypted_str, filename=f"login_{payload.email}_{int(time.time())}.enc")
+                        except Exception as e:
+                            logger.error(f"Failed to secure metadata to IPFS: {e}")
+
                     client.mutation("sessions:createSession", {
                         "applicationId": app["_id"],
                         "userEmail": payload.email,
@@ -165,7 +177,8 @@ async def login(payload: LoginPayload, request: Request):
                         "location": metadata.get("location", "Unknown"),
                         "ip": metadata.get("ip", request.client.host if request.client else "127.0.0.1"),
                         "score": score,
-                        "initialState": state_map.get(decision_type, "EVALUATING")
+                        "initialState": state_map.get(decision_type, "EVALUATING"),
+                        "pinataCid": pinata_cid
                     })
         except Exception as e:
             logger.warning(f"Failed to report login session to Convex: {e}")
