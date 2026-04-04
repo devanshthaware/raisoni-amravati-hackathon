@@ -40,6 +40,7 @@ import {
 import { UserButton } from "@clerk/nextjs"
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
 import { useOrganization } from "@/components/providers/organization-provider"
+import { useMounted } from "@/hooks/use-mounted"
 import {
   Dialog,
   DialogContent,
@@ -63,8 +64,10 @@ const navItems = [
 ]
 
 function formatTimeAgo(timestamp: number) {
-  const seconds = Math.floor((Date.now() - timestamp) / 1000)
-  if (seconds < 60) return `${seconds}s ago`
+  // Use a stable reference for server-side rendering
+  const now = typeof window === 'undefined' ? timestamp : Date.now()
+  const seconds = Math.floor((now - timestamp) / 1000)
+  if (seconds < 60) return `Just now`
   const minutes = Math.floor(seconds / 60)
   if (minutes < 60) return `${minutes}m ago`
   const hours = Math.floor(minutes / 60)
@@ -73,6 +76,7 @@ function formatTimeAgo(timestamp: number) {
 }
 
 export function Topbar() {
+  const mounted = useMounted()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [notificationsOpen, setNotificationsOpen] = useState(false)
@@ -130,9 +134,10 @@ export function Topbar() {
         <div className="flex items-center gap-3">
           {/* Org Switcher */}
           <div className="hidden sm:flex items-center mr-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-9 gap-2 px-2 hover:bg-secondary/50">
+            {mounted && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-9 gap-2 px-2 hover:bg-secondary/50" id="org-switcher-trigger">
                   <Building2 className="size-4 text-muted-foreground" />
                   <span className="text-sm font-medium hidden md:block">
                     {activeOrgData ? activeOrgData.name : "..."}
@@ -160,7 +165,8 @@ export function Topbar() {
                   New Organization
                 </DropdownMenuItem>
               </DropdownMenuContent>
-            </DropdownMenu>
+              </DropdownMenu>
+            )}
           </div>
 
           {/* Mobile hamburger */}
@@ -205,13 +211,15 @@ export function Topbar() {
           </Sheet>
 
           {/* Notifications */}
-          <DropdownMenu open={notificationsOpen} onOpenChange={setNotificationsOpen}>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative text-muted-foreground hover:text-foreground"
-              >
+          {mounted && (
+            <DropdownMenu open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative text-muted-foreground hover:text-foreground"
+                  id="notifications-trigger"
+                >
                 <Bell className="size-4" />
                 {unreadCount > 0 && (
                   <span className="absolute right-2 top-2 size-2 rounded-full bg-destructive border-[1.5px] border-background" />
@@ -270,7 +278,7 @@ export function Topbar() {
                             )} />
                             <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{alert.appName}</span>
                           </div>
-                          <span className="text-[10px] font-medium text-muted-foreground/60 whitespace-nowrap">
+                          <span className="text-[10px] font-medium text-muted-foreground/60 whitespace-nowrap" suppressHydrationWarning>
                             {formatTimeAgo(alert.createdAt)}
                           </span>
                         </div>
@@ -290,7 +298,8 @@ export function Topbar() {
                 <Link href="/dashboard">Explore Intelligence Stream</Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+            </DropdownMenu>
+          )}
 
           <div className="h-6 w-px bg-border mx-1 hidden sm:block" />
           

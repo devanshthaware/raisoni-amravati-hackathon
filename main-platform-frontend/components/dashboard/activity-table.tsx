@@ -157,8 +157,8 @@ export function ActivityTable({ applicationId }: { applicationId?: string | Id<"
                   <TableCell>
                     <RiskBadge level={getRiskLevel(session.state || "low")} />
                   </TableCell>
-                  <TableCell className="text-right text-muted-foreground">
-                    {formatDistanceToNow(new Date(session.loginTime || Date.now()), { addSuffix: true })}
+                  <TableCell className="text-right text-muted-foreground" suppressHydrationWarning>
+                    {formatDistanceToNow(new Date(session.loginTime || (typeof window !== "undefined" ? Date.now() : 0)), { addSuffix: true })}
                   </TableCell>
                 </TableRow>
               )
