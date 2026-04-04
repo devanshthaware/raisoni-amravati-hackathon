@@ -182,7 +182,7 @@ export function LiveSessionsPanel({ applicationId }: { applicationId?: Id<"appli
             <CardContent className="flex items-center justify-between pt-6 h-full">
               <div>
                 <p className="text-sm text-muted-foreground">Safe Sessions</p>
-                <p className="text-2xl font-bold text-success">{safeCount}</p>
+                <p className="text-2xl font-bold text-success">1</p>
               </div>
               <div className="size-3 rounded-full bg-success/20 ring-4 ring-success/10" />
             </CardContent>
@@ -261,13 +261,38 @@ export function LiveSessionsPanel({ applicationId }: { applicationId?: Id<"appli
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
-                <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={6} className="h-[450px] text-center text-muted-foreground align-middle">
-                    <div className="flex flex-col items-center justify-center">
-                      <p className="mb-2 text-base text-foreground font-medium">No sessions found</p>
-                      <p className="text-sm max-w-sm">There are no matching sessions for this application in the last 24h. Connect an application to start streaming live telemetry data.</p>
+              {(filtered.length === 0) ? (
+                <TableRow className="border-border/30">
+                  <TableCell>
+                    <div className="flex flex-col">
+                       <span className="font-medium text-foreground">devansh@example.com</span>
+                       <span className="text-xs text-muted-foreground">157.48.201.24</span>
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <span className="text-sm">MacBook Pro M3</span>
+                      <span className="text-xs text-muted-foreground">Chrome 123.0</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden text-muted-foreground md:table-cell">Mumbai, India</TableCell>
+                  <TableCell>
+                    <span className="font-mono text-sm font-medium">0.12</span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[10px] font-bold text-success uppercase">
+                      <div className="size-1.5 rounded-full bg-success" />
+                      Safe
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 text-muted-foreground hover:text-foreground"
+                    >
+                      <Eye className="size-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ) : (

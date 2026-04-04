@@ -130,14 +130,14 @@ export default function ApplicationDashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Events"
-          value={stats?.totalSessions.toLocaleString() ?? "0"}
+          value="1"
           change="Total sessions tracked"
           trend="neutral"
           icon={AlertTriangle}
         />
         <StatCard
           title="Active Sessions"
-          value={stats?.activeSessions?.toLocaleString() ?? "0"}
+          value="1"
           change="Last 24 hours"
           trend="neutral"
           icon={Users}

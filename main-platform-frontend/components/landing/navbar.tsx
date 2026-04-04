@@ -25,9 +25,6 @@ export function Navbar() {
           </Link>
         </nav>
         <div className="flex items-center gap-3">
-          <Link href="/admin" className="text-sm font-medium text-emerald-400 hover:text-emerald-300 mr-2 transition-colors">
-            Admin Login
-          </Link>
           <Button size="sm" asChild className="rounded-lg">
             <Link href="/sign-in">Get Started</Link>
           </Button>

@@ -1,4 +1,4 @@
-import { BellIcon, HomeIcon, LogInIcon, LogOutIcon, UserIcon, UserPlusIcon } from "lucide-react";
+import { BellIcon, HomeIcon, LogInIcon, LogOutIcon, UserIcon, UserPlusIcon, Bug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import ModeToggle from "./ModeToggle";
@@ -36,6 +36,13 @@ async function DesktopNavbar() {
         <>
           <SecurityBell />
           
+          <Button variant="ghost" className="flex items-center gap-2" asChild>
+            <Link href="/simulations">
+              <Bug className="w-4 h-4" />
+              <span className="hidden lg:inline">Simulations</span>
+            </Link>
+          </Button>
+
           <Button variant="ghost" className="flex items-center gap-2" asChild>
             <Link href="/notifications">
               <BellIcon className="w-4 h-4" />

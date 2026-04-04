@@ -73,13 +73,18 @@ app.add_middleware(
 # API Key & Origin Middleware
 @app.middleware("http")
 async def validate_api_key_and_origin(request: Request, call_next):
-    # Skip validation for health and root
+    # Skip validation for health, root, and documentation
     if request.url.path in ["/health", "/", "/docs", "/openapi.json"]:
+        return await call_next(request)
+    
+    # Preflight Request Bypass
+    if request.method == "OPTIONS":
         return await call_next(request)
     
     # Origin validation
     origin = request.headers.get("origin")
     if origin and origin not in ALLOWED_ORIGINS:
+        logger.warning(f"Invalid Origin: {origin}. Allowed: {ALLOWED_ORIGINS}")
         return JSONResponse(
             status_code=403,
             content={"detail": f"Forbidden: Invalid Origin {origin}"}
@@ -89,6 +94,7 @@ async def validate_api_key_and_origin(request: Request, call_next):
     expected_key = os.getenv("ML_API_KEY", "aegis_master_key_2024")
     
     if not api_key or api_key != expected_key:
+        logger.warning(f"Unauthorized access attempt: API Key mismatch or missing from {origin}")
         return JSONResponse(
             status_code=401,
             content={"detail": "Unauthorized: Invalid or missing API key"}
