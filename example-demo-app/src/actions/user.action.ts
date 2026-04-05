@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma";
 import "@/lib/aegis"; // Import to ensure AegisAuth is initialized on the server
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs"; 
-import { getCurrentUser, logout, signup, login, setTracking } from "@devanshthaware/aegis-auth";
+import { getCurrentUser, logout, signup, login } from "@devanshthaware/aegis-auth";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 
@@ -58,7 +58,7 @@ export async function getDbUserId(): Promise<string | null> {
     const correlationId = cookieStore.get("aegis_correlation_id")?.value;
 
     if (sessionId) {
-      setTracking(sessionId, correlationId || "restored");
+      // AegisAuth SDK handles session restoration internally via cookies
     }
 
     // 3. Get user from AegisAuth SDK

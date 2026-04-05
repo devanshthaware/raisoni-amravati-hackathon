@@ -108,7 +108,10 @@ export function SupportChat() {
         setIsAITyping(true);
         fetch("http://localhost:8000/api/v1/support/ai-chat", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+                "Content-Type": "application/json",
+                "x-api-key": "aegis_master_key_2024" 
+            },
             body: JSON.stringify({ ticket_id: ticketId, message: messageText, user_id: user.id })
         }).catch(e => console.error("Failed to trigger AI:", e)).finally(() => {
             setIsAITyping(false);

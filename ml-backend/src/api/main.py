@@ -73,7 +73,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -86,13 +86,18 @@ async def validate_api_key_and_origin(request: Request, call_next):
     
     # 2. API Key Validation (Primary Security)
     api_key = request.headers.get("x-api-key")
-    expected_key = os.getenv("ML_API_KEY", "aegis_master_key_2024")
+    expected_key = os.getenv("ML_API_KEY")
+    
+    # PRODUCTION SAFETY: If ML_API_KEY is not set, we use a fallback but log a critical warning
+    if not expected_key:
+        logger.error("CRITICAL: ML_API_KEY is not set in environment! Falling back to master key for safety.")
+        expected_key = "aegis_master_key_2024"
     
     if not api_key or api_key != expected_key:
         logger.warning(f"Unauthorized access attempt to {request.url.path} - Missing or invalid API key")
         return JSONResponse(
             status_code=401,
-            content={"detail": "Unauthorized: Invalid or missing API key"}
+            content={"detail": "Unauthorized: Invalid or missing endpoint key"}
         )
 
     # 3. Origin validation (Secondary Security for Browser Requests)

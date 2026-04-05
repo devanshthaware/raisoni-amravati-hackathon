@@ -126,18 +126,25 @@ async def login(payload: LoginPayload, request: Request):
     """
     logger.info(f"Login bridge request for: {payload.email}")
     
-    # In a real scenario, we'd extract features from the request/metadata
-    # Here we simulate features for the ML model
+    # Extract features from metadata if provided, fallback to defaults
+    metadata = payload.metadata or {}
+    
     mock_features = {
-        "login_hour": time.localtime().tm_hour,
-        "device_known": 1,
-        "country_changed": 0,
-        "login_velocity": 1.0,
-        "ip_reputation_score": 0.9,
-        "asn_changed": 0,
-        "failed_attempts": 0,
-        "mfa_failures": 0,
+        "login_hour": metadata.get("login_hour", time.localtime().tm_hour),
+        "device_known": metadata.get("device_known", 1),
+        "country_changed": metadata.get("country_changed", 0),
+        "login_velocity": metadata.get("login_velocity", 1.0),
+        "ip_reputation_score": metadata.get("ip_reputation_score", 0.9),
+        "asn_changed": metadata.get("asn_changed", 0),
+        "failed_attempts": metadata.get("failed_attempts", 0),
+        "mfa_failures": metadata.get("mfa_failures", 0),
     }
+    
+    # Ensure all features are integers or floats as expected by the model
+    mock_features = {k: float(v) if isinstance(v, (int, float)) else 0.0 for k, v in mock_features.items()}
+    # Special cases for int features
+    for k in ["login_hour", "device_known", "country_changed", "asn_changed", "failed_attempts", "mfa_failures"]:
+        mock_features[k] = int(mock_features[k])
     
     try:
         # Run ML prediction

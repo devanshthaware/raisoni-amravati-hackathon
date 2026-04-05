@@ -7,6 +7,7 @@ import {
   MoonIcon,
   SunIcon,
   UserIcon,
+  Bug,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -49,7 +50,13 @@ function MobileNavbar() {
               </Link>
             </Button>
 
-            <Button variant="ghost" className="flex items-center gap-3 justify-start" asChild>
+            <Button variant="outline" className="flex items-center gap-3 justify-start border-primary/50 text-primary bg-primary/5" asChild onClick={() => setShowMobileMenu(false)}>
+              <Link href="/simulations">
+                <Bug className="w-4 h-4 animate-pulse" />
+                Threat Simulations
+              </Link>
+            </Button>
+            <Button variant="ghost" className="flex items-center gap-3 justify-start" asChild onClick={() => setShowMobileMenu(false)}>
               <Link href="/notifications">
                 <BellIcon className="w-4 h-4" />
                 Notifications
