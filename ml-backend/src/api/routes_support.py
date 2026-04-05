@@ -61,49 +61,61 @@ class ChatRequest(BaseModel):
     user_id: str
 
 # Config & Credentials
-# Use environment variables for secure keys
-TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "mock_sid")
-TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "mock_token")
-TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER", "+1234567890")
-ELEVENLABS_AGENT_ID = os.getenv("ELEVENLABS_AGENT_ID", "mock_agent")
+# ElevenLabs Unified Integration (Phone + AI handled by ElevenLabs)
+ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "your_elevenlabs_api_key_here")
+ELEVENLABS_AGENT_ID = os.getenv("ELEVENLABS_AGENT_ID", "your_elevenlabs_agent_id_here")
+ELEVENLABS_PHONE_ID = os.getenv("ELEVENLABS_PHONE_ID", "your_elevenlabs_phone_number_id_here")
+# THE HARDCODED NUMBER TO CALL (Include country code, e.g., +91 or +1)
+HARDCODED_SUPPORT_RECEIVER = "+910000000000" 
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY", "mock_gemini_key"))
-# Using user requested gemini-2.5-flash
-model = genai.GenerativeModel('gemini-2.5-flash') 
+import requests
 
-
-def initiate_twilio_call(to_phone: str):
+def trigger_outbound_call(to_phone: str):
     """
-    Mock or real Twilio call function.
-    Connects to ElevenLabs conversational AI via Twilio streams.
+    Triggers an outbound call directly via ElevenLabs using their Twilio integration API.
     """
-    if "mock" in TWILIO_ACCOUNT_SID:
-        print(f"[MOCK] Twilio Call initiated to {to_phone} using ElevenLabs Agent {ELEVENLABS_AGENT_ID}")
-        return {"status": "mock_success", "call_sid": "CA123456789 mock"}
+    if "your_elevenlabs_api_key" in ELEVENLABS_API_KEY:
+        logger.warning("ElevenLabs API Key not configured. Skipping outbound call.")
+        return {"status": "unconfigured"}
         
+    url = f"https://api.elevenlabs.io/v1/convai/twilio/outbound-call"
+    
+    payload = {
+        "agent_id": ELEVENLABS_AGENT_ID,
+        "agent_phone_number_id": ELEVENLABS_PHONE_ID,
+        "to_number": to_phone
+    }
+    
+    headers = {
+        "xi-api-key": ELEVENLABS_API_KEY,
+        "Content-Type": "application/json"
+    }
+
     try:
-        client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-        # In a real integration, the URL would point to TwiML that connects a WebSocket to ElevenLabs
-        call = client.calls.create(
-            to=to_phone,
-            from_=TWILIO_PHONE_NUMBER,
-            url="http://demo.twilio.com/docs/voice.xml" # Placeholder TwiML
-        )
-        return {"status": "success", "call_sid": call.sid}
+        response = requests.post(url, json=payload, headers=headers)
+        if response.status_code != 200:
+             logger.error(f"ElevenLabs error response ({response.status_code}): {response.text}")
+             return {"status": "error", "message": response.text}
+             
+        logger.info(f"ElevenLabs outbound call initiated successfully. Full Response: {response.text}")
+        return {"status": "success", "response_data": response.json()}
     except Exception as e:
-        print(f"Twilio error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to initiate voice call")
+        logger.error(f"ElevenLabs background task error: {str(e)}")
+        return {"status": "error", "message": str(e)}
 
 
 @router.post("/call")
 async def trigger_voice_support(request: CallRequest, background_tasks: BackgroundTasks):
     """
-    Initiates a voice call to the user via Twilio & ElevenLabs.
+    Initiates a voice call to the hardcoded number or the provided one.
     """
     try:
+        # Use the hardcoded receiver provided by the user
+        target_number = HARDCODED_SUPPORT_RECEIVER if HARDCODED_SUPPORT_RECEIVER != "+910000000000" else request.phone_number
+        
         # Run Call in Background to avoid blocking the API response
-        background_tasks.add_task(initiate_twilio_call, request.phone_number)
-        return {"status": "Call initiated", "phone": request.phone_number}
+        background_tasks.add_task(trigger_outbound_call, target_number)
+        return {"status": "Call initiated", "phone": target_number}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

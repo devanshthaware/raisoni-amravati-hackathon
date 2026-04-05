@@ -4,7 +4,9 @@ import { useParams, useRouter } from "next/navigation"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
+import { useMounted } from "@/hooks/use-mounted"
 import { StatCard } from "@/components/dashboard/stat-card"
+
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -32,6 +34,7 @@ export default function ApplicationDashboardPage() {
   const params = useParams()
   const router = useRouter()
   const appId = params.appId as Id<"applications">
+  const mounted = useMounted()
 
   const app = useQuery(api.applications.getApp, { id: appId })
   const stats = useQuery(api.sessions.getStats, { applicationId: appId })
@@ -49,7 +52,7 @@ export default function ApplicationDashboardPage() {
     });
   }
 
-  if (app === undefined || stats === undefined) {
+  if (!mounted || app === undefined || stats === undefined) {
     return (
       <div className="flex h-[600px] flex-col items-center justify-center gap-4 text-muted-foreground">
         <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -57,6 +60,7 @@ export default function ApplicationDashboardPage() {
       </div>
     )
   }
+
 
   if (app === null) {
     return (

@@ -50,7 +50,7 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down ML Backend Service")
 
 
-# Create FastAPI app
+# Triggering reload after env update
 app = FastAPI(
     title="Adaptive Auth ML Backend",
     description="ML Backend Service for Adaptive Authentication Risk Assessment",
@@ -59,8 +59,15 @@ app = FastAPI(
 )
 
 # CORS middleware
-# Setting allowed origins to the frontend application URL
-ALLOWED_ORIGINS = ["http://localhost:3000", "http://localhost:8000"]
+# Setting allowed origins to the frontend application URL and Convex cloud
+ALLOWED_ORIGINS = [
+    "http://localhost:3000", 
+    "http://localhost:8000",
+    "http://localhost:3001",
+    "https://insightful-perch-941.convex.cloud",
+    "https://insightful-perch-941.convex.site"
+]
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -73,28 +80,40 @@ app.add_middleware(
 # API Key & Origin Middleware
 @app.middleware("http")
 async def validate_api_key_and_origin(request: Request, call_next):
-    # Skip validation for health and root
-    if request.url.path in ["/health", "/", "/docs", "/openapi.json"]:
+    # 1. Bypass validation for health, root, developer docs, and CORS PREFLIGHT
+    if request.url.path in ["/health", "/", "/docs", "/openapi.json"] or request.method == "OPTIONS":
         return await call_next(request)
     
-    # Origin validation
+    # 2. API Key Validation (Primary Security)
+    api_key = request.headers.get("x-api-key")
+    expected_key = os.getenv("ML_API_KEY", "aegis_master_key_2024")
+    
+    if not api_key or api_key != expected_key:
+        logger.warning(f"Unauthorized access attempt to {request.url.path} - Missing or invalid API key")
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Unauthorized: Invalid or missing API key"}
+        )
+
+    # 3. Origin validation (Secondary Security for Browser Requests)
     origin = request.headers.get("origin")
+    # Only enforce origin if it exists (usually browser) AND we don't bypass for server-to-server
     if origin and origin not in ALLOWED_ORIGINS:
+        logger.warning(f"Forbidden Origin blocked: {origin}")
         return JSONResponse(
             status_code=403,
             content={"detail": f"Forbidden: Invalid Origin {origin}"}
         )
     
-    api_key = request.headers.get("x-api-key")
-    expected_key = os.getenv("ML_API_KEY", "aegis_master_key_2024")
-    
-    if not api_key or api_key != expected_key:
-        return JSONResponse(
-            status_code=401,
-            content={"detail": "Unauthorized: Invalid or missing API key"}
-        )
-    
-    return await call_next(request)
+    # 4. Proceed to the next handler
+    try:
+        response = await call_next(request)
+        return response
+    except Exception as e:
+        logger.error(f"Middleware caught exception in request pipeline: {e}")
+        # Let the global exception handler deal with this if we haven't started responding
+        raise e
+
 
 # Include routers
 app.include_router(login_router)

@@ -68,11 +68,13 @@ async def signup(payload: SignupPayload, request: Request):
     # --- Convex Integration ---
     try:
         api_key = request.headers.get("x-api-key")
+        app_id = request.headers.get("x-app-id")
         client = get_convex_client()
         if client and api_key:
-            app = client.query("applications:getByApiKey", {"apiKey": api_key})
+            app = client.query("applications:getByApiKey", {"apiKey": api_key, "appId": app_id})
             if app:
-                client.mutation("sessions:createSession", {
+
+                sessionId = client.mutation("sessions:createSession", {
                     "applicationId": app["_id"],
                     "userEmail": payload.email,
                     "device": "SDK-Device",
@@ -82,8 +84,30 @@ async def signup(payload: SignupPayload, request: Request):
                     "score": 0.0,
                     "initialState": "ACTIVE"
                 })
+                
+                # Sync ML results for signup
+                client.mutation("ml:syncMLResults", {
+                    "sessionId": sessionId,
+                    "correlationId": f"corr_{uuid.uuid4().hex[:12]}",
+                    "score": 0.0,
+                    "factors": {
+                        "ipRisk": 0.0,
+                        "deviceTrust": 1.0,
+                        "geoAnomaly": 0.0
+                    },
+                    "modelVersion": "v1-bridge",
+                    "state": "ACTIVE",
+                    "decisionType": "ALLOW",
+                    "riskResult": {
+                        "risk_score": 0.0,
+                        "risk_level": "LOW",
+                        "components": {}
+                    }
+                })
     except Exception as e:
-        logger.warning(f"Failed to report signup session to Convex: {e}")
+            logger.error(f"Failed to report signup session to Convex: {e}")
+            logger.error(traceback.format_exc())
+
     
     return AuthResponse(
         data=AuthResponseData(
@@ -140,17 +164,19 @@ async def login(payload: LoginPayload, request: Request):
         # --- Convex Integration ---
         try:
             api_key = request.headers.get("x-api-key")
+            app_id = request.headers.get("x-app-id")
             client = get_convex_client()
             if client and api_key:
-                app = client.query("applications:getByApiKey", {"apiKey": api_key})
+                app = client.query("applications:getByApiKey", {"apiKey": api_key, "appId": app_id})
                 if app:
+
                     # Map decision to Convex state
                     state_map = {
                         "ALLOW": "ACTIVE",
                         "CHALLENGE": "CHALLENGED",
                         "BLOCK": "BLOCKED"
                     }
-                    client.mutation("sessions:createSession", {
+                    sessionId = client.mutation("sessions:createSession", {
                         "applicationId": app["_id"],
                         "userEmail": payload.email,
                         "device": "SDK-Device",
@@ -160,10 +186,33 @@ async def login(payload: LoginPayload, request: Request):
                         "score": score,
                         "initialState": state_map.get(decision_type, "EVALUATING")
                     })
+                    
+                    # Sync ML results to mlScores and activities
+                    client.mutation("ml:syncMLResults", {
+                        "sessionId": sessionId,
+                        "correlationId": f"corr_{uuid.uuid4().hex[:12]}",
+                        "score": score,
+                        "factors": {
+                            "ipRisk": score, # Using login score as ipRisk
+                            "deviceTrust": 0.9, # Mocked
+                            "geoAnomaly": 0.1 # Mocked
+                        },
+                        "modelVersion": "v1-bridge",
+                        "state": state_map.get(decision_type, "ACTIVE"),
+                        "decisionType": decision_type,
+                        "riskResult": {
+                            "risk_score": score,
+                            "risk_level": decision_type,
+                            "components": mock_features
+                        }
+                    })
         except Exception as e:
-            logger.warning(f"Failed to report login session to Convex: {e}")
+            logger.error(f"Failed to report login session to Convex: {e}")
+            logger.error(traceback.format_exc())
+
 
         session_id = f"sess_{uuid.uuid4().hex[:12]}"
+
         correlation_id = f"corr_{uuid.uuid4().hex[:12]}"
         
         return AuthResponse(

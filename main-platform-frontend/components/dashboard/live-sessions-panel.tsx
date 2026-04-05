@@ -23,6 +23,8 @@ import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
 import { Badge } from "@/components/ui/badge"
+import { useMounted } from "@/hooks/use-mounted"
+
 
 type SessionStatus = "safe" | "suspicious" | "blocked" | "ACTIVE" | "CHALLENGED" | "RESTRICTED" | "BLOCKED" | string
 
@@ -100,6 +102,7 @@ function RiskHistory({ sessionId }: { sessionId: Id<"sessions"> }) {
 
 export function LiveSessionsPanel({ applicationId }: { applicationId?: Id<"applications"> }) {
   const sessionsList = useQuery(api.sessions.list, { applicationId: applicationId ?? undefined })
+  const mounted = useMounted()
   const [search, setSearch] = useState("")
   const [sortField, setSortField] = useState<SortField>(null)
   const [sortDir, setSortDir] = useState<SortDir>("asc")
@@ -107,6 +110,7 @@ export function LiveSessionsPanel({ applicationId }: { applicationId?: Id<"appli
   const [detailSession, setDetailSession] = useState<any | null>(null)
 
   function toggleSort(field: SortField) {
+
     if (sortField === field) {
       setSortDir(sortDir === "asc" ? "desc" : "asc")
     } else {
@@ -154,7 +158,7 @@ export function LiveSessionsPanel({ applicationId }: { applicationId?: Id<"appli
   const suspiciousCount = sessionsList?.filter((s: any) => (s.score ?? 0) > 0.3 && (s.score ?? 0) < 0.8).length || 0
   const blockedCount = sessionsList?.filter((s: any) => (s.score ?? 0) >= 0.8 || s.state === "BLOCKED").length || 0
 
-  if (!sessionsList) {
+  if (!mounted || !sessionsList) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
         <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent mb-4" />
@@ -162,6 +166,7 @@ export function LiveSessionsPanel({ applicationId }: { applicationId?: Id<"appli
       </div>
     )
   }
+
 
   return (
     <div className="flex flex-col gap-6">

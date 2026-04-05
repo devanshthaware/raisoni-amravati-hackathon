@@ -3,7 +3,9 @@
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useOrganization } from "@/components/providers/organization-provider"
+import { useMounted } from "@/hooks/use-mounted"
 import { StatCard } from "@/components/dashboard/stat-card"
+
 import { RiskChart } from "@/components/dashboard/risk-chart"
 import { ProjectInfoCard } from "@/components/dashboard/project-info-card"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,10 +14,14 @@ import { Users, AlertTriangle, AppWindow, Gauge, Zap, ShieldCheck } from "lucide
 
 export default function DashboardPage() {
   const { activeOrganization } = useOrganization()
+  const mounted = useMounted()
   const stats = useQuery(
     api.sessions.getStats, 
     activeOrganization ? { organizationId: activeOrganization } : "skip"
   )
+
+  if (!mounted) return null
+
 
   const riskLevels = stats?.riskDistribution
     ? [

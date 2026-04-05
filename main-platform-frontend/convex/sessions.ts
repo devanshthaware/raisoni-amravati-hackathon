@@ -97,18 +97,19 @@ export const list = query({
 function filterValidLiveSessions(sessions: any[]) {
     const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
     return sessions.filter(s => {
-        // Validation Rule: Must have required fields (created via real login flow)
-        const hasValidIds = !!s._id && !!s.applicationId && !!s.userEmail && !!s.correlationId;
+        // Validation Rule: Must have required fields
+        const hasValidIds = !!s._id && !!s.applicationId && !!s.userEmail;
         
         // Live Session Filter: Must be recent (last 24h)
         const isRecent = s.loginTime > twentyFourHoursAgo;
         
-        // Allowed Active/Live states
-        const isLiveState = ["NEW", "EVALUATING", "ACTIVE", "CHALLENGED", "RESTRICTED"].includes(s.state ?? "");
+        // Allowed Active/Live states - Include BLOCKED in live view for immediate visibility
+        const isLiveState = ["NEW", "EVALUATING", "ACTIVE", "CHALLENGED", "RESTRICTED", "BLOCKED"].includes(s.state ?? "");
         
         return hasValidIds && isRecent && isLiveState;
     });
 }
+
 
 export const getStats = query({
     args: { 

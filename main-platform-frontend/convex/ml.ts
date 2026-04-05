@@ -153,15 +153,23 @@ export const syncMLResults = mutation({
         });
 
         // 2. State Transition & Score Persistence
+        // We update the session score and state. 
+        // Note: transitionSession will handle state transition logic and stateVersion.
         await ctx.db.patch(args.sessionId, { score: args.score });
 
-        await transitionSession(
-            ctx.db, 
-            args.sessionId, 
-            args.state as SessionState, 
-            "ML_ASSESSMENT_COMPLETED",
-            args.correlationId
-        );
+        try {
+            await transitionSession(
+                ctx.db, 
+                args.sessionId, 
+                args.state as SessionState, 
+                "ML_ASSESSMENT_COMPLETED",
+                args.correlationId
+            );
+        } catch (e) {
+            console.warn(`[Aegis Sync] State transition failed for session ${args.sessionId}: ${e}`);
+            // If transition fails (e.g. invalid path), we still want the score to be saved.
+            // We've already patched the score above.
+        }
 
         // 3. Real-Time Security Alerts (Enforcement Trigger)
         if (args.score >= 0.7 || args.decisionType === "BLOCK") {
@@ -224,6 +232,7 @@ export const syncMLResults = mutation({
         });
     },
 });
+
 
 export const getSessionMLHistory = query({
     args: { sessionId: v.id("sessions") },

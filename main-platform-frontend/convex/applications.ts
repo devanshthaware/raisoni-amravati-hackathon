@@ -177,8 +177,22 @@ export const toggleStatus = mutation({
 });
 
 export const getByApiKey = query({
-    args: { apiKey: v.string() },
+    args: { apiKey: v.string(), appId: v.optional(v.string()) },
     handler: async (ctx, args) => {
+        // Master Key Bypass (for demo/development)
+        if (args.apiKey === "aegis_master_key_2024") {
+            if (args.appId) {
+                const app = await ctx.db
+                    .query("applications")
+                    .filter(q => q.eq(q.field("appId"), args.appId))
+                    .first();
+                if (app) return app;
+            }
+            return await ctx.db
+                .query("applications")
+                .first();
+        }
+
         return await ctx.db
             .query("applications")
             .withIndex("by_api_key", (q) => q.eq("apiKey", args.apiKey))

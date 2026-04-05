@@ -19,10 +19,13 @@ export function VoiceCallButton() {
         try {
             const response = await fetch("http://localhost:8000/api/v1/support/call", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-api-key": "aegis_master_key_2024"
+                },
                 body: JSON.stringify({
                     user_id: user.id,
-                    phone_number: user.primaryPhoneNumber?.phoneNumber || "+1234567890", // fallback
+                    phone_number: user.primaryPhoneNumber?.phoneNumber || "+918855016908", // fallback
                 }),
             });
 
