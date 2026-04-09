@@ -62,11 +62,15 @@ app = FastAPI(
 # Setting allowed origins to the frontend application URL and Convex cloud
 ALLOWED_ORIGINS = [
     "http://localhost:3000", 
+    "http://127.0.0.1:3000",
     "http://localhost:8000",
+    "http://127.0.0.1:8000",
     "http://localhost:3001",
+    "http://127.0.0.1:3001",
     "https://insightful-perch-941.convex.cloud",
     "https://insightful-perch-941.convex.site"
 ]
+
 
 
 app.add_middleware(
@@ -79,7 +83,16 @@ app.add_middleware(
 
 # API Key & Origin Middleware
 @app.middleware("http")
+async def log_requests(request: Request, call_next):
+    # Log the incoming request path for debugging 404s
+    logger.info(f"[Aegis ML] Request: {request.method} {request.url.path}")
+    response = await call_next(request)
+    logger.info(f"[Aegis ML] Response: {response.status_code}")
+    return response
+
+@app.middleware("http")
 async def validate_api_key_and_origin(request: Request, call_next):
+
     # 1. Bypass validation for health, root, developer docs, and CORS PREFLIGHT
     if request.url.path in ["/health", "/", "/docs", "/openapi.json"] or request.method == "OPTIONS":
         return await call_next(request)

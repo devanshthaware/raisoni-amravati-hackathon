@@ -6,10 +6,11 @@ import { initAegisAuth } from "@devanshthaware/aegis-auth";
  */
 const aegisConfig = {
   apiKey: process.env.AEGIS_API_KEY || process.env.NEXT_PUBLIC_AEGIS_API_KEY || "aegis_master_key_2024",
-  baseUrl: (process.env.AEGIS_BASE_URL || process.env.NEXT_PUBLIC_AEGIS_BASE_URL || "http://localhost:8000") + "/auth",
+  baseUrl: process.env.AEGIS_BASE_URL || process.env.NEXT_PUBLIC_AEGIS_BASE_URL || "http://127.0.0.1:8000",
   appId: process.env.AEGIS_APP_ID || process.env.NEXT_PUBLIC_AEGIS_APP_ID || "app_ve0u0g",
   debug: true,
 };
+
 
 // Initialize the SDK once
 if (typeof global !== 'undefined') {

@@ -286,7 +286,7 @@ export default function IntegrationsPage() {
                 </div>
                 <div className="space-y-4 font-medium">
                   <p className="text-sm text-foreground">1. Install the core package</p>
-                  <CodeBlock code="pnpm add @aegis/auth-sdk" />
+                  <CodeBlock code="pnpm add @devanshthaware/aegis-auth"/>
                 </div>
                 <div className="space-y-4">
                   <p className="text-sm font-medium text-foreground">2. Initialize and assess risk</p>

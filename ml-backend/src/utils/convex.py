@@ -3,9 +3,15 @@ from urllib.parse import urlparse
 from convex import ConvexClient
 from src.utils.logger import logger
 from dotenv import load_dotenv
+from pathlib import Path
 
-load_dotenv()
+# Load from .env in the root of the ml-backend directory
+base_dir = Path(__file__).resolve().parent.parent.parent
+env_path = base_dir / ".env"
+load_dotenv(dotenv_path=env_path)
+
 CONVEX_URL = os.getenv("NEXT_PUBLIC_CONVEX_URL", "mock_url")
+
 convex_client = None
 
 def _is_mock_convex_url(url: str) -> bool:
